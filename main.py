@@ -45,9 +45,13 @@ def load_transactions(mempool_dir):
 
 def validate_transaction(transaction):
   try:
-    txid = transaction['vin'][0]['txid']
-    signature_hex = transaction['vin'][0]['witness'][0]
-    public_key_hex = transaction['vin'][0]['witness'][1]
+    vin = transaction['vin'][0]
+    if 'witness' not in vin or len(vin['witness']) < 2:
+      return False
+
+    txid = vin['txid']
+    signature_hex = vin['witness'][0]
+    public_key_hex = vin['witness'][1]
 
     sighash_type = signature_hex[-2:]
     signature_bytes = bytes.fromhex(signature_hex[:-2])
@@ -59,7 +63,7 @@ def validate_transaction(transaction):
     
     vk = VerifyingKey.from_string(bytes.fromhex(public_key_hex), curve=SECP256k1)
     return vk.verify(signature_bytes, message_hash, sigdecode=sigdecode_der)
-  except (KeyError, ValueError, BadSignatureError):
+  except (KeyError, ValueError, BadSignatureError, IndexError):
     return False
 
 def mine_block(transactions, difficulty_target):
